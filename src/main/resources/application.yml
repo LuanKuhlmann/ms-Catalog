@@ -1,0 +1,17 @@
+spring:
+  application:
+  name: ms-Catalog
+  datasource:
+    url: jdbc:postgresql://localhost:5433/mscatalog
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
