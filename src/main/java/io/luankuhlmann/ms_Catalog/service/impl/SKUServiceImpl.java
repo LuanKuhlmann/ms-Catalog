@@ -2,6 +2,7 @@ package io.luankuhlmann.ms_Catalog.service.impl;
 
 import io.luankuhlmann.ms_Catalog.dto.request.SKURequestDTO;
 import io.luankuhlmann.ms_Catalog.dto.response.SKUResponseDTO;
+import io.luankuhlmann.ms_Catalog.exception.EntityNotFoundException;
 import io.luankuhlmann.ms_Catalog.mapper.CustomSKUMapper;
 import io.luankuhlmann.ms_Catalog.mapper.SKUMapper;
 import io.luankuhlmann.ms_Catalog.model.SKU;
@@ -9,6 +10,8 @@ import io.luankuhlmann.ms_Catalog.repository.ProductRepository;
 import io.luankuhlmann.ms_Catalog.repository.SKURepository;
 import io.luankuhlmann.ms_Catalog.service.SKUService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,34 +28,27 @@ public class SKUServiceImpl implements SKUService {
     @Autowired
     private CustomSKUMapper customSKUMapper;
 
-    public SKUResponseDTO createSKU(SKURequestDTO skuRequestDTO) {
+    public ResponseEntity<SKUResponseDTO> createSKU(SKURequestDTO skuRequestDTO) {
         validateSKUDTO(skuRequestDTO);
-
         SKU sku = skuMapper.toEntity(skuRequestDTO);
-        sku.setProduct(productRepository.findById(skuRequestDTO.productId()).orElseThrow());
-
-        SKU savedSKU = skuRepository.save(sku);
-        return customSKUMapper.mapToResponseDTO(savedSKU);
+        sku.setProduct(productRepository.findById(skuRequestDTO.productId()).orElseThrow(() -> new EntityNotFoundException("Product not Found")));
+        SKUResponseDTO createdSKU = customSKUMapper.mapToResponseDTO(skuRepository.save(sku));
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdSKU);
     }
 
-    public SKUResponseDTO updateSKU(Long id, SKURequestDTO skuRequestDTO) {
+    public  ResponseEntity<SKUResponseDTO> updateSKU(Long id, SKURequestDTO skuRequestDTO) {
         validateSKUDTO(skuRequestDTO);
-
-        SKU existingSKU = skuRepository.findById(id).orElseThrow();
-        existingSKU.setPrice(skuRequestDTO.price());
-        existingSKU.setQuantity(skuRequestDTO.quantity());
-        existingSKU.setColor(skuRequestDTO.color());
-        existingSKU.setSize(skuRequestDTO.size());
-        existingSKU.setHeight(skuRequestDTO.height());
-        existingSKU.setWidth(skuRequestDTO.width());
-        existingSKU.setProduct(productRepository.findById(skuRequestDTO.productId()).orElseThrow());
-
-        SKU updatedSKU = skuRepository.save(existingSKU);
-        return skuMapper.toResponseDTO(updatedSKU);
+        SKU existingSKU = findSkuById(id);
+        customSKUMapper.updateEntityFromDTO(existingSKU, skuRequestDTO);
+        //existingSKU.setProduct(productRepository.findById(skuRequestDTO.productId()).orElseThrow(() -> new EntityNotFoundException("Product not Found")));
+        SKUResponseDTO updatedSKU = skuMapper.toResponseDTO(skuRepository.save(existingSKU));
+        return new ResponseEntity<>(updatedSKU, HttpStatus.OK);
     }
 
-    public void deleteSKU(Long id) {
-        skuRepository.deleteById(id);
+    public ResponseEntity<Void> deleteSKU(Long id) {
+        SKU existingSku = findSkuById(id);
+        skuRepository.delete(existingSku);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     public void adjustStock(Long skuId, int quantity) {
@@ -69,5 +65,9 @@ public class SKUServiceImpl implements SKUService {
                 !productRepository.existsById(skuRequestDTO.productId())) {
             throw new IllegalArgumentException("Invalid SKU data");
         }
+    }
+
+    private SKU findSkuById(Long id) {
+        return skuRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Sku not Found"));
     }
 }

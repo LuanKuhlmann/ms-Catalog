@@ -1,7 +1,10 @@
 package io.luankuhlmann.ms_Catalog.mapper;
 
+import io.luankuhlmann.ms_Catalog.dto.request.ProductRequestDTO;
+import io.luankuhlmann.ms_Catalog.dto.request.SKURequestDTO;
 import io.luankuhlmann.ms_Catalog.dto.response.MediaResponseDTO;
 import io.luankuhlmann.ms_Catalog.dto.response.SKUResponseDTO;
+import io.luankuhlmann.ms_Catalog.model.Product;
 import io.luankuhlmann.ms_Catalog.model.SKU;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -34,5 +37,14 @@ public class CustomSKUMapper {
                 sku.getWidth(),
                 images
         );
+    }
+
+    public void updateEntityFromDTO(SKU sku, SKURequestDTO skuRequestDTO) {
+        sku.setPrice(skuRequestDTO.price());
+        sku.setQuantity(skuRequestDTO.quantity());
+        sku.setColor(skuRequestDTO.color());
+        sku.setSize(skuRequestDTO.size());
+        sku.setHeight(skuRequestDTO.height());
+        sku.setWidth(skuRequestDTO.width());
     }
 }

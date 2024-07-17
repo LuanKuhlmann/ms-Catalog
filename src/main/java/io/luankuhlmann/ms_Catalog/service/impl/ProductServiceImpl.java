@@ -1,6 +1,7 @@
 package io.luankuhlmann.ms_Catalog.service.impl;
 
 import io.luankuhlmann.ms_Catalog.dto.request.ProductRequestDTO;
+import io.luankuhlmann.ms_Catalog.dto.response.CategoryResponseDTO;
 import io.luankuhlmann.ms_Catalog.dto.response.ProductResponseDTO;
 import io.luankuhlmann.ms_Catalog.exception.EntityNotFoundException;
 import io.luankuhlmann.ms_Catalog.exception.InvalidProductDataException;
@@ -13,6 +14,8 @@ import io.luankuhlmann.ms_Catalog.repository.CategoryRepository;
 import io.luankuhlmann.ms_Catalog.repository.ProductRepository;
 import io.luankuhlmann.ms_Catalog.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,53 +35,42 @@ public class ProductServiceImpl implements ProductService{
     @Autowired
     private CustomProductMapper customProductMapper;
 
-    public ProductResponseDTO createProduct(ProductRequestDTO productRequestDTO) {
+    public ResponseEntity<ProductResponseDTO> createProduct(ProductRequestDTO productRequestDTO) {
         validateProductDTO(productRequestDTO);
-
         Product product = productMapper.toEntity(productRequestDTO);
-
         setCategoryById(productRequestDTO.categoryId(), product);
-
-        Product savedProduct = productRepository.save(product);
-        return customProductMapper.mapToResponseDTO(savedProduct);
+        ProductResponseDTO createdProduct = customProductMapper.mapToResponseDTO(productRepository.save(product));
+        return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
     }
 
-    public List<ProductResponseDTO> getAllProducts() {
+    public ResponseEntity<List<ProductResponseDTO>> getAllProducts() {
         List<ProductResponseDTO> productList = productRepository.findAll().stream()
                 .map(customProductMapper::mapToResponseDTO)
                 .toList();
-
         if (productList.isEmpty()) {
             throw new ListIsEmptyException("No products was found");
         }
-
-        return productList;
-
-        /*return productRepository.findAll().stream()
-                .map(customProductMapper::mapToResponseDTO)
-                .collect(Collectors.toList());*/
+        return ResponseEntity.ok(productList);
     }
 
-    public ProductResponseDTO getProductById(Long id) {
+    public ResponseEntity<ProductResponseDTO> getProductById(Long id) {
         Product product = findProduct(id);
-        return customProductMapper.mapToResponseDTO(product);
+        return ResponseEntity.ok(customProductMapper.mapToResponseDTO(product));
     }
 
-    public ProductResponseDTO updateProduct(Long id, ProductRequestDTO productRequestDTO) {
+    public ResponseEntity<ProductResponseDTO> updateProduct(Long id, ProductRequestDTO productRequestDTO) {
         validateProductDTO(productRequestDTO);
-
         Product existingProduct = findProduct(id);
-
         customProductMapper.updateEntityFromDTO(existingProduct, productRequestDTO);
         setCategoryById(productRequestDTO.categoryId(), existingProduct);
-
-        Product updatedProduct = productRepository.save(existingProduct);
-        return customProductMapper.mapToResponseDTO(updatedProduct);
+        ProductResponseDTO updatedProduct = customProductMapper.mapToResponseDTO(productRepository.save(existingProduct));
+        return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
     }
 
-    public void deleteProduct(Long id) {
+    public ResponseEntity<Void> deleteProduct(Long id) {
         Product existingProduct = findProduct(id);
         productRepository.delete(existingProduct);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     private void validateProductDTO(ProductRequestDTO productRequestDTO) {
@@ -88,7 +80,6 @@ public class ProductServiceImpl implements ProductService{
         validateNotNull(productRequestDTO.brand(), "Product brand cannot be null");
         validateNotNull(productRequestDTO.material(), "Product material cannot be null");
         validateNotNull(productRequestDTO.categoryId(), "Category ID cannot be null");
-
         Category category = validateCategoryExistsAndIsActive(productRequestDTO.categoryId());
         validateCategoryIsLeaf(category);
     }
@@ -101,17 +92,13 @@ public class ProductServiceImpl implements ProductService{
 
     private Category validateCategoryExistsAndIsActive(Long categoryId) {
         Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
-
         if (categoryOptional.isEmpty()) {
             throw new InvalidProductDataException("Category not found");
         }
-
         Category category = categoryOptional.get();
-
         if (!category.getActive()) {
             throw new InvalidProductDataException("Category must be active");
         }
-
         return category;
     }
 
@@ -126,6 +113,6 @@ public class ProductServiceImpl implements ProductService{
     }
 
     private void setCategoryById(Long id, Product product) {
-        product.setCategory(categoryRepository.findById(id).orElseThrow(() -> new RuntimeException("Category not found")));
+        product.setCategory(categoryRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Category not found")));
     }
 }

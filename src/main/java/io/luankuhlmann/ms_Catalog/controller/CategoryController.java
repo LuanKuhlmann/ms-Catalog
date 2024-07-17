@@ -18,30 +18,27 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @PostMapping
-    public ResponseEntity createCategory(@Valid @RequestBody CategoryRequestDTO data) {
+    public ResponseEntity<CategoryResponseDTO> createCategory(@Valid @RequestBody CategoryRequestDTO data) {
         return categoryService.createCategory(data);
     }
 
     @GetMapping
     public ResponseEntity<List<CategoryResponseDTO>> getAllCategories() {
-        List<CategoryResponseDTO> categories = categoryService.getAllCategories();
-        return ResponseEntity.ok(categories);
+        return categoryService.getAllCategories();
     }
 
     @GetMapping("/{id}/products")
     public ResponseEntity<List<ProductResponseDTO>> getProductsByCategory(@PathVariable Long id) {
-        List<ProductResponseDTO> products = categoryService.getProductsByCategory(id);
-        return ResponseEntity.ok(products);
+        return categoryService.getProductsByCategory(id);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryRequestDTO categoryRequestDTO) {
+    public ResponseEntity<CategoryResponseDTO> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryRequestDTO categoryRequestDTO) {
         return categoryService.updateCategory(id, categoryRequestDTO);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-        categoryService.deactivateCategoryAndChildren(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<CategoryResponseDTO> deleteCategory(@PathVariable Long id) {
+        return categoryService.deactivateCategoryAndChildren(id);
     }
 }

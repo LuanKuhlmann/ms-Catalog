@@ -17,13 +17,11 @@ public class MediaController {
 
     @PostMapping
     public ResponseEntity<MediaResponseDTO> createMedia(@RequestBody @Valid MediaRequestDTO data) {
-        MediaResponseDTO createdMedia = mediaService.createMedia(data);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdMedia);
+        return mediaService.createMedia(data);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMedia(@PathVariable Long id) {
-        mediaService.deleteMedia(id);
-        return ResponseEntity.noContent().build();
+        return mediaService.deleteMedia(id);
     }
 }

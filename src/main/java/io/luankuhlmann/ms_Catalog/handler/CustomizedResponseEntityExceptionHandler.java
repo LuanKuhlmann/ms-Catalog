@@ -1,9 +1,6 @@
 package io.luankuhlmann.ms_Catalog.handler;
 
-import io.luankuhlmann.ms_Catalog.exception.EntityNotFoundException;
-import io.luankuhlmann.ms_Catalog.exception.ExceptionResponse;
-import io.luankuhlmann.ms_Catalog.exception.InvalidProductDataException;
-import io.luankuhlmann.ms_Catalog.exception.ListIsEmptyException;
+import io.luankuhlmann.ms_Catalog.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -43,6 +40,14 @@ public class CustomizedResponseEntityExceptionHandler extends ResponseEntityExce
 
     @ExceptionHandler(InvalidProductDataException.class)
     public final ResponseEntity<ExceptionResponse> handleInvalidProductDataException(Exception ex, WebRequest request) {
+        ExceptionResponse exceptionResponse = new ExceptionResponse(
+                new Date(), ex.getMessage(), request.getDescription(false));
+
+        return new ResponseEntity<>(exceptionResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(CategoryAlreadyDeactivatedException.class)
+    public final ResponseEntity<ExceptionResponse> handleCategoryAlreadyDeactivatedException(Exception ex, WebRequest request) {
         ExceptionResponse exceptionResponse = new ExceptionResponse(
                 new Date(), ex.getMessage(), request.getDescription(false));
 

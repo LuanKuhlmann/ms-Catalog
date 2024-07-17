@@ -3,6 +3,7 @@ package io.luankuhlmann.ms_Catalog.service.impl;
 import io.luankuhlmann.ms_Catalog.dto.request.CategoryRequestDTO;
 import io.luankuhlmann.ms_Catalog.dto.response.CategoryResponseDTO;
 import io.luankuhlmann.ms_Catalog.dto.response.ProductResponseDTO;
+import io.luankuhlmann.ms_Catalog.exception.CategoryAlreadyDeactivatedException;
 import io.luankuhlmann.ms_Catalog.exception.EntityNotFoundException;
 import io.luankuhlmann.ms_Catalog.exception.InvalidProductDataException;
 import io.luankuhlmann.ms_Catalog.exception.ListIsEmptyException;
@@ -12,6 +13,7 @@ import io.luankuhlmann.ms_Catalog.model.Category;
 import io.luankuhlmann.ms_Catalog.repository.CategoryRepository;
 import io.luankuhlmann.ms_Catalog.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -31,70 +33,58 @@ public class CategoryServiceImpl implements CategoryService {
     @Autowired
     private CustomProductMapper customProductMapper;
 
-    public ResponseEntity createCategory(CategoryRequestDTO categoryRequestDTO) {
+    public ResponseEntity<CategoryResponseDTO> createCategory(CategoryRequestDTO categoryRequestDTO) {
         validateCategoryDTO(categoryRequestDTO);
-
         Category category = categoryMapper.toEntity(categoryRequestDTO);
-
         if (categoryRequestDTO.parentId() != null) {
             Category parent = categoryRepository.findById(categoryRequestDTO.parentId()).orElseThrow(() -> new EntityNotFoundException("Parent category not found"));
             category.setParent(parent);
         }
-
-        categoryRepository.save(category);
-
-        return ResponseEntity.ok().build();
+        CategoryResponseDTO createdCategory = categoryMapper.toResponseDTO(categoryRepository.save(category));
+        return new ResponseEntity<>(createdCategory, HttpStatus.CREATED);
     }
 
-    public List<CategoryResponseDTO> getAllCategories() {
-        List<Category> categories = categoryRepository.findAll();
-        return buildCategoryTree(categories);
+    public ResponseEntity<List<CategoryResponseDTO>> getAllCategories() {
+        List<CategoryResponseDTO> categories = buildCategoryTree(categoryRepository.findAll());
+        return ResponseEntity.ok(categories);
     }
 
-    public List<ProductResponseDTO> getProductsByCategory(Long id) {
+    public ResponseEntity<List<ProductResponseDTO>> getProductsByCategory(Long id) {
         Category category = categoryRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Category not found"));
-
         List<ProductResponseDTO> productList = category.getProducts().stream()
                 .map(customProductMapper::mapToResponseDTO)
                 .toList();
-
         if (productList.isEmpty()) {
             throw new ListIsEmptyException("No products was found for this category");
         }
-
-        return productList;
-
-        /*return category.getProducts().stream()
-                .map(customProductMapper::mapToResponseDTO)
-                .collect(Collectors.toList());*/
+        return ResponseEntity.ok(productList);
     }
 
-    public ResponseEntity updateCategory(Long id, CategoryRequestDTO categoryRequestDTO) {
+    public ResponseEntity<CategoryResponseDTO> updateCategory(Long id, CategoryRequestDTO categoryRequestDTO) {
         validateCategoryDTO(categoryRequestDTO);
-
         Category existingCategory = categoryRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Category not found"));
-
         existingCategory.setName(categoryRequestDTO.name());
         existingCategory.setActive(categoryRequestDTO.active());
-
         if (categoryRequestDTO.parentId() != null) {
             Category parent = categoryRepository.findById(categoryRequestDTO.parentId()).orElseThrow(() -> new EntityNotFoundException("Parent category not found"));
             existingCategory.setParent(parent);
         }
-
-        categoryRepository.save(existingCategory);
-        return ResponseEntity.ok().build();
+        CategoryResponseDTO updatedCategory = categoryMapper.toResponseDTO(categoryRepository.save(existingCategory));
+        return new ResponseEntity<>(updatedCategory, HttpStatus.OK);
     }
 
     @Override
-    public void deactivateCategoryAndChildren(Long id) {
+    public ResponseEntity<CategoryResponseDTO> deactivateCategoryAndChildren(Long id) {
         Category category = categoryRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Category not found"));
-
+        if(!category.getActive()) {
+            throw new CategoryAlreadyDeactivatedException("This category is already inactive");
+        }
         category.setActive(false);
         for (Category child : category.getChildren()) {
             deactivateCategoryAndChildren(child.getId());
         }
-        categoryRepository.save(category);
+        CategoryResponseDTO deactivatedCategory = categoryMapper.toResponseDTO(categoryRepository.save(category));
+        return new ResponseEntity<>(deactivatedCategory, HttpStatus.OK);
     }
 
     private void validateCategoryDTO(CategoryRequestDTO categoryRequestDTO) {
@@ -106,7 +96,6 @@ public class CategoryServiceImpl implements CategoryService {
     private List<CategoryResponseDTO> buildCategoryTree(List<Category> categories) {
         Map<Long, CategoryResponseDTO> categoryMap = new HashMap<>();
         List<CategoryResponseDTO> roots = new ArrayList<>();
-
         for (Category category : categories) {
             CategoryResponseDTO categoryDTO = new CategoryResponseDTO(
                     category.getId(),
@@ -125,11 +114,9 @@ public class CategoryServiceImpl implements CategoryService {
                 }
             }
         }
-
         if (roots.isEmpty()) {
             throw new ListIsEmptyException("No category was found");
         }
-
         return roots;
     }
 }

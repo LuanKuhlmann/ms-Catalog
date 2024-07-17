@@ -10,13 +10,13 @@ import java.util.List;
 
 @Service
 public interface CategoryService {
-    ResponseEntity createCategory(CategoryRequestDTO categoryRequestDTO);
+    ResponseEntity<CategoryResponseDTO> createCategory(CategoryRequestDTO categoryRequestDTO);
 
-    List<CategoryResponseDTO> getAllCategories();
+    ResponseEntity<List<CategoryResponseDTO>> getAllCategories();
 
-    List<ProductResponseDTO> getProductsByCategory(Long id);
+    ResponseEntity<List<ProductResponseDTO>> getProductsByCategory(Long id);
 
-    ResponseEntity updateCategory(Long id, CategoryRequestDTO categoryRequestDTO);
+    ResponseEntity<CategoryResponseDTO> updateCategory(Long id, CategoryRequestDTO categoryRequestDTO);
 
-    void deactivateCategoryAndChildren(Long id);
+    ResponseEntity<CategoryResponseDTO> deactivateCategoryAndChildren(Long id);
 }

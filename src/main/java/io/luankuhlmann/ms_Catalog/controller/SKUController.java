@@ -17,19 +17,16 @@ public class SKUController {
 
     @PostMapping
     public ResponseEntity<SKUResponseDTO> createSKU(@RequestBody @Valid SKURequestDTO data) {
-        SKUResponseDTO createdSKU = skuService.createSKU(data);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdSKU);
+        return skuService.createSKU(data);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<SKUResponseDTO> updateSKU(@PathVariable Long id, @RequestBody @Valid SKURequestDTO data) {
-        SKUResponseDTO updatedSKU = skuService.updateSKU(id, data);
-        return ResponseEntity.ok(updatedSKU);
+        return skuService.updateSKU(id, data);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSKU(@PathVariable Long id) {
-        skuService.deleteSKU(id);
-        return ResponseEntity.noContent().build();
+        return skuService.deleteSKU(id);
     }
 }
